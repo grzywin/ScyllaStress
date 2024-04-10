@@ -9,7 +9,7 @@ Preconditions
 
 Installation and Running
 ------------
-1. Download repository
+1. Download or clone repository
 2. Navigate to the directory where you downloaded the repository (main catalog)
 3. Install required packages by typing following command `pip install -r requirements.txt`
 4. **Run the program by typing `python scylla_stress --number_of_runs X` where X is the number of concurrent Cassandra 
