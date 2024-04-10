@@ -3,7 +3,6 @@
 import asyncio
 import subprocess
 import re
-import os
 import json
 import argparse
 import backoff
@@ -12,6 +11,7 @@ from datetime import datetime
 from logger import logger
 from stats_calculator import StatsCalculator
 from exceptions import RegexNotFound, DockerDaemonOff
+from dict_exporter import DictExporter
 
 
 class CassandraStressRunner:
@@ -28,22 +28,11 @@ class CassandraStressRunner:
         """
         self.params_to_collect = ["Op rate", "Latency mean", "Latency 99th percentile", "Latency max"]
         self.container_name = container_name
-        self.command = self.construct_cassandra_stress_command(container_name)
+        self.command = self._construct_cassandra_stress_command(container_name)
         if extra_params_from_cassandra_log is not None:
             self.params_to_collect += extra_params_from_cassandra_log
         self.stdouts_from_cassandra = []
         self.number_of_runs = None
-
-    def construct_cassandra_stress_command(self, container_name: str) -> str:
-        """
-        Construct Cassandra stress command by taking container name from the constructor or getting ip address of the
-        Cassandra node from nodetools command
-        :param container_name: Name of the container
-        :return Cassandra stress command
-        """
-        node_ip_address = self.check_container(container_name)
-        return (f"docker exec {self.container_name} cassandra-stress write duration=10s -rate threads=10 "
-                f"-node {node_ip_address}")
 
     async def run_cassandra_stress(self, command: str, show_cassandra_logs: bool) -> None:
         """
@@ -70,6 +59,17 @@ class CassandraStressRunner:
         if show_cassandra_logs:
             logger.info(f"Command '{command}' executed with output:\n{stdout_decoded}")
 
+    def _construct_cassandra_stress_command(self, container_name: str) -> str:
+        """
+        Construct Cassandra stress command by taking container name from the constructor or getting ip address of the
+        Cassandra node from nodetools command
+        :param container_name: Name of the container
+        :return Cassandra stress command
+        """
+        node_ip_address = self._check_container(container_name)
+        return (f"docker exec {self.container_name} cassandra-stress write duration=10s -rate threads=10 "
+                f"-node {node_ip_address}")
+
     async def trigger_command(self, number_of_runs: str, show_cassandra_logs: bool = False) -> None:
         """
         Run cassandra-stress command asynchronously with asyncio library
@@ -82,7 +82,7 @@ class CassandraStressRunner:
         commands = [self.command] * self.number_of_runs
         await asyncio.gather(*(self.run_cassandra_stress(command, show_cassandra_logs) for command in commands))
 
-    def get_param_from_cassandra_logs(self, param_name: str) -> list:
+    def _get_param_from_cassandra_logs(self, param_name: str) -> list:
         """
         Gets parameter values from multiple Cassandra stress test command logs
         :param param_name: Parameter name for which we want to get value from Cassandra logs
@@ -108,7 +108,7 @@ class CassandraStressRunner:
         """
         gathered_stats, end_stats = dict(), dict()
         for param in self.params_to_collect:
-            gathered_stats[param] = self.get_param_from_cassandra_logs(param)
+            gathered_stats[param] = self._get_param_from_cassandra_logs(param)
         if show_cassandra_stats:
             end_stats.update(gathered_stats)
         end_stats["Stress processes ran"] = self.number_of_runs
@@ -121,7 +121,7 @@ class CassandraStressRunner:
         end_stats["Timings"] = {f"Stress command {index}": elem.get("timing")
                                 for index, elem in enumerate(self.stdouts_from_cassandra, 1)}
         if export_json:
-            CassandraStressRunner.export_json(end_stats)
+            DictExporter.export_dict_to_json_file(end_stats)
         return end_stats
 
     @backoff.on_predicate(backoff.constant, lambda x: x, max_time=120, interval=10)
@@ -148,7 +148,7 @@ class CassandraStressRunner:
             raise RegexNotFound(ip_pattern)
         return match.group()
 
-    def check_container(self, container_name: str) -> str:
+    def _check_container(self, container_name: str) -> str:
         """
         Check if docker container is ready for testing
         :param container_name: Name of the container
@@ -162,15 +162,6 @@ class CassandraStressRunner:
         self._wait_for_cassandra_node_up()
         return self._get_ip()
 
-    @staticmethod
-    def export_json(stats: dict) -> None:
-        json_string = json.dumps(stats, indent=4)
-        relative_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-        results_file = os.path.join(relative_path, "results",
-                                    f"scylla_stats_{datetime.now().strftime('%H_%M_%S_%y_%m_%d')}.json")
-        with open(results_file, 'w') as file:
-            file.write(json_string)
-
 
 def main() -> None:
     """
@@ -183,13 +174,13 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Run Cassandra stress test")
     parser.add_argument("--number_of_runs", required=True, help="Number of parallel runs to execute")
     parser.add_argument("--show_cassandra_logs", action="store_true", help="Show detailed Cassandra logs values")
-    parser.add_argument("--export_json", action="store_true", help="Export generated stats to json file")
+    parser.add_argument("--export_to_json", action="store_true", help="Export generated stats to json file")
     parser.add_argument("--container_name", required=False, default='some-scylla', help="Non-default container name")
     args = parser.parse_args()
 
     cassandra_stress_runner = CassandraStressRunner(args.container_name)
     asyncio.run(cassandra_stress_runner.trigger_command(args.number_of_runs, args.show_cassandra_logs))
     stats_summary = cassandra_stress_runner.generate_stats_summary(show_cassandra_stats=args.show_cassandra_logs,
-                                                                   export_json=args.export_json)
+                                                                   export_json=args.export_to_json)
 
     logger.note(f"Stress tests statistics:\n{json.dumps(stats_summary, indent=4)}")

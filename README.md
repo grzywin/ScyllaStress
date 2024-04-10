@@ -18,7 +18,7 @@ stress commands for ScyllaDB**
 Extra Features
 --------------
 1. There are some extra arguments which can be passed to scylla_stress:
-   - export_json - will save stress results into /results folder in main project folder
+   - export_to_json - will save stress results into /results folder in main project folder
    - show_cassandra_logs - will show full output from Cassandra stress runs
    - container_name - will allow you to type non-default container name (other than '*some-scylla*')
 2. Run logs are saved after each run in  /logs folder in main project folder.
