@@ -3,7 +3,7 @@ ScyllaDB Job Interview
 
 Preconditions
 ------------
-1. Make sure that your Docker Agent/Daemon is running
+1. Make sure that your Docker Agent/Daemon is always running
 2. Download ScyllaDB docker image `docker pull scylladb/scylla`
 3. Start scylla server instance `docker run --name some-scylla --hostname some-scylla -d scylladb/scylla`.
 
@@ -22,3 +22,4 @@ Extra Features
    - show_cassandra_logs - will show full output from Cassandra stress runs
    - container_name - will allow you to type non-default container name (other than '*some-scylla*')
 2. Run logs are saved after each run in  /logs folder in main project folder.
+3. Sample command with all available arguments `python scylla_stress --number_of_runs 5 --show_cassandra_logs --export_json --container_name some-scylla`
