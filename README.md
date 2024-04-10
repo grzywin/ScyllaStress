@@ -24,4 +24,4 @@ Extra Features
 2. Run logs are saved after each run in  /logs folder in main project folder.
 3. Sample command with all available arguments:
 
-   `python scylla_stress --number_of_runs 5 --show_cassandra_logs --export_json --container_name some-scylla`
+   `python scylla_stress --number_of_runs 5 --show_cassandra_logs --export_to_json --container_name some-scylla`
