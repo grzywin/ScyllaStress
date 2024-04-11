@@ -107,7 +107,8 @@ class CassandraStressRunner:
                     raise RegexNotFound(f"Durations must match pattern: {pattern}, but one of them was {duration}")
                 command = self.command.replace("{DURATION}", duration)
                 commands.append(command)
-            logger.info(f"Executed commands:\n{'\n'.join(commands)}")
+            joined_commands = '\n'.join(commands)
+            logger.info(f"Executed commands:\n{joined_commands}")
         return commands
 
     def _scrap_param_from_cassandra_logs(self, param_name: str) -> list:
