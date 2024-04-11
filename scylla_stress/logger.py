@@ -23,14 +23,20 @@ COLORS = {
 RESET = '\033[0m'  # Reset color
 
 
-# Custom Formatter for adding color to console output
 class ColoredFormatter(logging.Formatter):
+    """
+    Custom Formatter for adding color to console output
+    """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.default_formatter = logging.Formatter('[%(asctime)s] [%(levelname)s] %(message)s',
                                                    datefmt='%H:%M:%S %Y-%m-%d')
 
-    def format(self, record):
+    def format(self, record: logging.LogRecord) -> str:
+        """
+        Format the log
+        :param record: LogRecord object
+        """
         log_level = record.levelno
         color = COLORS.get(log_level, '\033[0m')  # Default to no color
 
@@ -64,7 +70,13 @@ logger.addHandler(file_handler)
 
 
 # Add NOTE log level method to logger
-def note(self, message, *args, **kwargs):
+# pylint: disable=protected-access
+def note(self, message: str, *args, **kwargs):
+    """
+    Added note log level
+    :param self: Log object instance
+    :param message: Content of message
+    """
     if self.isEnabledFor(NOTE):
         self._log(NOTE, message, args, **kwargs)
 
