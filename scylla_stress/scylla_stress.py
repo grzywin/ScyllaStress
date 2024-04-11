@@ -34,11 +34,11 @@ class CassandraStressRunner:
         self.stdouts_from_cassandra = []
         self.number_of_runs = None
 
-    async def run_cassandra_stress(self, command: str, show_cassandra_logs: bool) -> None:
+    async def run_cassandra_stress(self, command: str, cassandra_logs: bool) -> None:
         """
         Run single cassandra-stress command
         :param command: Content of command to be triggered
-        :param show_cassandra_logs: Flag to tell if we want to show Cassandra logs in output or not
+        :param cassandra_logs: Flag to tell if we want to show Cassandra logs in output and save it to log file or not
         :return None
         """
         start_time = datetime.now()
@@ -56,7 +56,7 @@ class CassandraStressRunner:
                   "duration": f"{round(duration.total_seconds(), 2)} sec"}
         # [-1] To retrieve only the "Results:" section from Cassandra logs instead of processing the entire output
         self.stdouts_from_cassandra.append({"stdout": stdout_decoded.split("Results:")[-1], "timing": timing})
-        if show_cassandra_logs:
+        if cassandra_logs:
             logger.info(f"Command '{command}' executed with output:\n{stdout_decoded}")
 
     def _construct_cassandra_stress_command(self, container_name: str) -> str:
@@ -70,17 +70,17 @@ class CassandraStressRunner:
         return (f"docker exec {self.container_name} cassandra-stress write duration=10s -rate threads=10 "
                 f"-node {node_ip_address}")
 
-    async def trigger_command(self, number_of_runs: str, show_cassandra_logs: bool = False) -> None:
+    async def trigger_command(self, number_of_runs: str, cassandra_logs: bool = False) -> None:
         """
         Run cassandra-stress command asynchronously with asyncio library
         :param number_of_runs: How many times concurrently stress test command will be triggered
-        :param show_cassandra_logs: Flag to tell if we want to show Cassandra logs in output or not
+        :param cassandra_logs: Flag to tell if we want to show Cassandra logs in output and save it to log file or not
         :return None
         """
         self.number_of_runs = int(number_of_runs)
         logger.info(f"Executing command: {self.command}, {number_of_runs} time(s)")
         commands = [self.command] * self.number_of_runs
-        await asyncio.gather(*(self.run_cassandra_stress(command, show_cassandra_logs) for command in commands))
+        await asyncio.gather(*(self.run_cassandra_stress(command, cassandra_logs) for command in commands))
 
     def _get_param_from_cassandra_logs(self, param_name: str) -> list:
         """
@@ -99,18 +99,16 @@ class CassandraStressRunner:
                 logger.warning(f"Parameter '{param_name}' was not found in Cassandra stress test output")
         return values
 
-    def generate_stats_summary(self, show_cassandra_stats: bool = False, export_json: bool = False) -> dict:
+    def generate_stats_summary(self, export_to_json: bool = False) -> dict:
         """
         Calculate all needed stats of Cassandra parallel stress runs
-        :param: show_collected_cassandra_stats: Adds to final stats also values collected from Cassandra logs
-        :param: export_json:  Export stats to json
+        :param: export_to_json:  Export stats to json
         :return Dictionary with desired values
         """
         gathered_stats, end_stats = dict(), dict()
         for param in self.params_to_collect:
             gathered_stats[param] = self._get_param_from_cassandra_logs(param)
-        if show_cassandra_stats:
-            end_stats.update(gathered_stats)
+        end_stats.update(gathered_stats)
         end_stats["Stress processes ran"] = self.number_of_runs
         end_stats["Op rates sum"] = StatsCalculator.calculate_sum(gathered_stats.get('Op rate'))
         end_stats["Average latency mean"] = StatsCalculator.calculate_average(gathered_stats['Latency mean'])
@@ -120,7 +118,7 @@ class CassandraStressRunner:
             StatsCalculator.calculate_standard_deviation(gathered_stats['Latency max']))
         end_stats["Timings"] = {f"Stress command {index}": elem.get("timing")
                                 for index, elem in enumerate(self.stdouts_from_cassandra, 1)}
-        if export_json:
+        if export_to_json:
             DictExporter.export_dict_to_json_file(end_stats)
         return end_stats
 
@@ -172,15 +170,14 @@ def main() -> None:
     It also collects and calculates statistics summary based on the test results.
     """
     parser = argparse.ArgumentParser(description="Run Cassandra stress test")
-    parser.add_argument("--number_of_runs", required=True, help="Number of parallel runs to execute")
-    parser.add_argument("--show_cassandra_logs", action="store_true", help="Show detailed Cassandra logs values")
-    parser.add_argument("--export_to_json", action="store_true", help="Export generated stats to json file")
-    parser.add_argument("--container_name", required=False, default='some-scylla', help="Non-default container name")
+    parser.add_argument("--number-of-runs", required=True, help="Number of parallel runs to execute")
+    parser.add_argument("--cassandra-logs", action="store_true", help="Show detailed Cassandra logs values")
+    parser.add_argument("--export-to-json", action="store_true", help="Export generated stats to json file")
+    parser.add_argument("--container-name", required=False, default='some-scylla', help="Non-default container name")
     args = parser.parse_args()
 
     cassandra_stress_runner = CassandraStressRunner(args.container_name)
-    asyncio.run(cassandra_stress_runner.trigger_command(args.number_of_runs, args.show_cassandra_logs))
-    stats_summary = cassandra_stress_runner.generate_stats_summary(show_cassandra_stats=args.show_cassandra_logs,
-                                                                   export_json=args.export_to_json)
+    asyncio.run(cassandra_stress_runner.trigger_command(args.number_of_runs, args.cassandra_logs))
+    stats_summary = cassandra_stress_runner.generate_stats_summary(export_to_json=args.export_to_json)
 
     logger.note(f"Stress tests statistics:\n{json.dumps(stats_summary, indent=4)}")
