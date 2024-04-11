@@ -9,8 +9,8 @@ import subprocess
 import re
 import json
 import argparse
-import backoff
 from datetime import datetime
+import backoff
 
 from logger import logger
 from stats_calculator import StatsCalculator
@@ -49,8 +49,8 @@ class CassandraStressRunner:
         process = await asyncio.to_thread(subprocess.Popen, command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stdout, stderr = await asyncio.to_thread(process.communicate)
         stdout_decoded, stderr_decoded = stdout.decode("utf-8"), stderr.decode("utf-8")
-        if stderr:
-            logger.warning(stderr)
+        if stderr_decoded:
+            logger.warning(stderr_decoded)
         end_time = datetime.now()
         duration = end_time - start_time
         # [-4] To reduce milliseconds precision
@@ -137,7 +137,7 @@ class CassandraStressRunner:
         number_of_runs = len(args.durations) if args.durations else int(args.number_of_runs_and_duration[0])
         durations = args.durations if args.durations else [args.number_of_runs_and_duration[1]] * number_of_runs
 
-        stats = dict()
+        stats = {}
         for param in self.params_to_collect:
             stats[param] = self._scrap_param_from_cassandra_logs(param)
         stats["Stress processes durations"] = durations

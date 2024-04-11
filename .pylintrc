@@ -2,4 +2,4 @@
 max-line-length=120
 
 [MESSAGES CONTROL]
-disable=too-few-public-methods
+disable=too-few-public-methods,import-error,subprocess-run-check
