@@ -1,3 +1,7 @@
+"""
+Custom logger which I am using in multiple personal projects
+"""
+
 import logging
 import sys
 import os

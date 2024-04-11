@@ -1,4 +1,8 @@
 class RegexNotFound(Exception):
+    """
+    A class for custom exceptions
+    """
+
     def __init__(self, value: str = ''):
         self.message = f"Searched regex expression was not found. Details:\n{value}"
         super().__init__(self.message)

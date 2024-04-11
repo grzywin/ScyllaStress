@@ -1,4 +1,8 @@
 class StatsCalculator:
+    """
+    A class for basic statistical calculations
+    """
+
     @staticmethod
     def calculate_average(values: list, unit: str = "ms") -> str:
         """

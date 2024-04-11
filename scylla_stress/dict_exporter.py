@@ -4,6 +4,10 @@ from datetime import datetime
 
 
 class DictExporter:
+    """
+    A class for exporting dictionary data to JSON file
+    """
+
     @staticmethod
     def export_dict_to_json_file(stats: dict) -> None:
         json_string = json.dumps(stats, indent=4)
