@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+"""
+Cassandra stress runner
+"""
+
 import asyncio
 import subprocess
 import re

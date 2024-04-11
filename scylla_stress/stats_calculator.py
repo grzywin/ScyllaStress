@@ -1,3 +1,8 @@
+"""
+Basic statistical calculations
+"""
+
+
 class StatsCalculator:
     """
     A class for basic statistical calculations

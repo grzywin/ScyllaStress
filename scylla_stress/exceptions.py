@@ -1,3 +1,7 @@
+"""
+Custom exceptions defined by the user
+"""
+
 class RegexNotFound(Exception):
     """
     A class for custom exceptions
