@@ -69,11 +69,11 @@ class CassandraStressRunner:
         return (f"docker exec {self.container_name} cassandra-stress write duration={{DURATION}} -rate threads=10 "
                 f"-node {node_ip_address}")
 
-    async def trigger_command(self, number_of_runs_and_duration: list, durations: str = None,
+    async def trigger_command(self, runs_number_and_duration: list, durations: str = None,
                               cassandra_logs: bool = False) -> None:
         """
         Run cassandra-stress command asynchronously with asyncio library
-        :param number_of_runs_and_duration: How many times concurrently stress test command will be triggered and
+        :param runs_number_and_duration: How many times concurrently stress test command will be triggered and
         what will be its duration
         :param durations: TEST
         :param cassandra_logs: Flag to tell if we want to show Cassandra logs in output and save it to log file or not
@@ -81,8 +81,8 @@ class CassandraStressRunner:
         """
         commands = []
         pattern = r"[0-9]+[smh]"
-        if number_of_runs_and_duration:
-            number_of_runs, duration = number_of_runs_and_duration
+        if runs_number_and_duration:
+            number_of_runs, duration = runs_number_and_duration
             if not number_of_runs.isnumeric():
                 raise ValueError("Number of runs must be a positive integer")
             match = re.search(pattern, duration)
@@ -189,22 +189,21 @@ def main() -> None:
     It also collects and calculates statistics summary based on the test results.
     """
     parser = argparse.ArgumentParser(description="Run Cassandra stress test")
-    parser.add_argument("--number-of-runs-and-duration", nargs='+', help="Number of parallel runs and to execute and "
-                                                                         "their duration")
+    parser.add_argument("--runs-number-and-duration", nargs='+', help="Number of parallel runs and to execute and "
+                                                                      "their duration")
     parser.add_argument("--durations", nargs='+', help="Duration of each run")
     parser.add_argument("--cassandra-logs", action="store_true", help="Show detailed Cassandra logs values")
     parser.add_argument("--export-to-json", action="store_true", help="Export generated stats to json file")
     parser.add_argument("--container-name", required=False, default='some-scylla', help="Non-default container name")
     args = parser.parse_args()
-    if args.number_of_runs_and_duration and args.durations:
-        parser.error("Expected one of two arguments (--number-of-runs-and-duration or --durations) not both!")
+    if not bool(args.runs_number_and_duration) ^ bool(args.durations):
+        parser.error("Expected one of two arguments (--runs-number-and-duration OR --durations)")
 
     cassandra_stress_runner = CassandraStressRunner(args.container_name)
-    asyncio.run(cassandra_stress_runner.trigger_command(args.number_of_runs_and_duration, args.durations,
+    asyncio.run(cassandra_stress_runner.trigger_command(args.runs_number_and_duration, args.durations,
                                                         args.cassandra_logs))
 
-    number_of_runs = int(args.number_of_runs_and_duration[0]) if args.number_of_runs_and_duration \
-        else len(args.durations)
+    number_of_runs = int(args.runs_number_and_duration[0]) if args.runs_number_and_duration else len(args.durations)
     stats_summary = cassandra_stress_runner.generate_stats_summary(number_of_runs,
                                                                    export_to_json=args.export_to_json)
 
