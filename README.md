@@ -17,6 +17,9 @@ of each Cassandra stress command in `[0-9]+[smh]` format, e.g. `1s 2s 10s 5s 1m`
 5. Alternatively the program can be run by typing `python scylla_stress --number-of-runs-and-duration X Y` where X is 
 the number of Cassandra stress commands and Y is their duration in `[0-9]+[smh]` format, e.g. 5 10s
 
+NOTE: On Linux make sure that you are running script with `sudo` and also that you are running proper python, e.g. 
+`python3`
+
 Extra Features
 --------------
 1. There are some extra arguments which can be passed to scylla_stress:
