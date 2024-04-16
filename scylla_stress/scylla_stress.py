@@ -162,7 +162,7 @@ class CassandraStressRunner:
         """
         command = f"docker exec {self.container_name} cqlsh"
         logger.info(f"Waiting for Cassandra to be up and running with command: {command}")
-        return subprocess.run(command, capture_output=True, text=True).stderr
+        return subprocess.run(command.split(), capture_output=True, text=True).stderr
 
     def _get_ip(self) -> str:
         """
@@ -170,7 +170,7 @@ class CassandraStressRunner:
         :return Node IP address in form of a string
         """
         logger.info("Getting node IP from nodetool status")
-        node_status = subprocess.run(f"docker exec {self.container_name} nodetool status", capture_output=True,
+        node_status = subprocess.run(f"docker exec {self.container_name} nodetool status".split(), capture_output=True,
                                      text=True)
         ip_pattern = r"\b(?:\d{1,3}\.){3}\d{1,3}\b"
         match = re.search(ip_pattern, node_status.stdout)
@@ -184,9 +184,9 @@ class CassandraStressRunner:
         :param container_name: Name of the container
         :return Cassandra node IP address in form of a string
         """
-        running_containers = subprocess.run("docker ps", capture_output=True, text=True)
+        running_containers = subprocess.run(["docker", "ps"], capture_output=True, text=True)
         if container_name not in running_containers.stdout:
-            run_docker_start = subprocess.run(f"docker start {container_name}", capture_output=True, text=True)
+            run_docker_start = subprocess.run(["docker", "start", container_name], capture_output=True, text=True)
             if run_docker_start.stderr:
                 raise DockerDaemonOff(run_docker_start.stderr)
         self._wait_for_cassandra_node_up()
