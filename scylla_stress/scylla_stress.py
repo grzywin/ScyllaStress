@@ -46,7 +46,8 @@ class CassandraStressRunner:
         """
         start_time = datetime.now()
         # noinspection PyTypeChecker
-        process = await asyncio.to_thread(subprocess.Popen, command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        process = await asyncio.to_thread(subprocess.Popen, command.split(), stdout=subprocess.PIPE,
+                                          stderr=subprocess.PIPE)
         stdout, stderr = await asyncio.to_thread(process.communicate)
         stdout_decoded, stderr_decoded = stdout.decode("utf-8"), stderr.decode("utf-8")
         if stderr_decoded:
